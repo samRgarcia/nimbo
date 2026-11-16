@@ -170,7 +170,7 @@ clip("s5", desk(
 clip("s6", f'''
   <div class="fx">{flakes(70, 1920, 1080, size=(6, 16))}</div>
   <div class="intro outro">{ICON}<h1>Nimbo</h1><p class="tag">{T["free"]}</p>
-    <div class="btn">{T["get"]}</div><p class="url">github.com/samRgarcia/nimbo</p></div>''')
+    <div class="btn">{T["get"]}</div><p class="url">nimbo.samdev.space</p></div>''')
 
 CSS = '''
 @font-face { font-family: "Bricolage"; font-weight: 700; src: url("assets/bricolage-grotesque-latin-700-normal.woff2") format("woff2"); }

@@ -5,7 +5,7 @@
 Live weather on your Mac desktop. Snow gathers on your windows and the Dock, rain splashes on
 window edges, and the scene changes on its own to match the real weather in your city.
 
-Free. Requires macOS 14 or later (Apple silicon or Intel).
+Free. Requires macOS 14 or later (Apple silicon or Intel). Website: [nimbo.samdev.space](https://nimbo.samdev.space)
 
 <p align="center"><img src="docs/screenshots/snow.jpg" alt="Nimbo: snow gathering on windows and the Dock" width="820"></p>
 
@@ -114,7 +114,7 @@ Weather data by [Open-Meteo](https://open-meteo.com/), licensed under CC BY 4.0.
 Clima vivo sobre el escritorio de tu Mac. La nieve se junta sobre las ventanas y el Dock,
 la lluvia salpica en los bordes y la escena cambia sola según el clima real de tu ciudad.
 
-Gratis. Requiere macOS 14 o posterior (Apple silicon o Intel).
+Gratis. Requiere macOS 14 o posterior (Apple silicon o Intel). Sitio: [nimbo.samdev.space](https://nimbo.samdev.space)
 
 ### Escenas
 
