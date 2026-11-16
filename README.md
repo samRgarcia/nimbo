@@ -7,6 +7,28 @@ window edges, and the scene changes on its own to match the real weather in your
 
 Free. Requires macOS 14 or later (Apple silicon or Intel).
 
+<p align="center"><img src="docs/screenshots/snow.jpg" alt="Nimbo: snow gathering on windows and the Dock" width="820"></p>
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/snow.jpg" alt="Snow" width="270"><br>Snow</td>
+    <td align="center"><img src="docs/screenshots/rain.jpg" alt="Rain" width="270"><br>Rain</td>
+    <td align="center"><img src="docs/screenshots/storm.jpg" alt="Storm" width="270"><br>Storm</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/petals.jpg" alt="Petals" width="270"><br>Petals</td>
+    <td align="center"><img src="docs/screenshots/leaves.jpg" alt="Leaves" width="270"><br>Leaves</td>
+    <td align="center"><img src="docs/screenshots/fireflies.jpg" alt="Fireflies" width="270"><br>Fireflies</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/meteors.jpg" alt="Meteors" width="270"><br>Meteors</td>
+    <td align="center"><img src="docs/screenshots/cloud.jpg" alt="Cloudy" width="270"><br>Cloudy</td>
+    <td align="center"><img src="docs/screenshots/mist.jpg" alt="Mist" width="270"><br>Mist</td>
+  </tr>
+</table>
+
+<sub>Illustrations of each scene on a sample desktop, not screenshots.</sub>
+
 ## Install
 
 Download [Nimbo.dmg](https://github.com/samRgarcia/nimbo/releases/latest/download/Nimbo.dmg),
@@ -43,6 +65,14 @@ Window positions never leave your Mac, and the app asks for no permissions.
 ```
 
 Requires the Xcode command line tools. The app is created at `build/Nimbo.app`.
+
+## Regenerate the illustrations
+
+```bash
+python3 docs/illustrations.py
+```
+
+Draws the sample desktop for each scene into `docs/screenshots/`. Requires Pillow.
 
 ## Publish a release
 
@@ -81,6 +111,30 @@ la lluvia salpica en los bordes y la escena cambia sola según el clima real de 
 
 Gratis. Requiere macOS 14 o posterior (Apple silicon o Intel).
 
+### Escenas
+
+<p align="center"><img src="docs/screenshots/snow.jpg" alt="Nimbo: nieve acumulada sobre las ventanas y el Dock" width="820"></p>
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/snow.jpg" alt="Nieve" width="270"><br>Nieve</td>
+    <td align="center"><img src="docs/screenshots/rain.jpg" alt="Lluvia" width="270"><br>Lluvia</td>
+    <td align="center"><img src="docs/screenshots/storm.jpg" alt="Tormenta" width="270"><br>Tormenta</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/petals.jpg" alt="Pétalos" width="270"><br>Pétalos</td>
+    <td align="center"><img src="docs/screenshots/leaves.jpg" alt="Hojas" width="270"><br>Hojas</td>
+    <td align="center"><img src="docs/screenshots/fireflies.jpg" alt="Luciérnagas" width="270"><br>Luciérnagas</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/meteors.jpg" alt="Meteoros" width="270"><br>Meteoros</td>
+    <td align="center"><img src="docs/screenshots/cloud.jpg" alt="Nublado" width="270"><br>Nublado</td>
+    <td align="center"><img src="docs/screenshots/mist.jpg" alt="Neblina" width="270"><br>Neblina</td>
+  </tr>
+</table>
+
+<sub>Ilustraciones de cada escena sobre un escritorio de ejemplo, no capturas reales.</sub>
+
 ### Instalar
 
 Descarga [Nimbo.dmg](https://github.com/samRgarcia/nimbo/releases/latest/download/Nimbo.dmg),
@@ -117,6 +171,14 @@ La posición de las ventanas nunca sale de la Mac, y la app no pide permisos.
 ```
 
 Requiere las herramientas de línea de comandos de Xcode. La app queda en `build/Nimbo.app`.
+
+### Regenerar las ilustraciones
+
+```bash
+python3 docs/illustrations.py
+```
+
+Dibuja el escritorio de ejemplo de cada escena en `docs/screenshots/`. Requiere Pillow.
 
 ### Publicar una versión
 

@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:nimbo}",
+            "name": "Debug Nimbo",
+            "target": "Nimbo",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug Nimbo"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:nimbo}",
+            "name": "Release Nimbo",
+            "target": "Nimbo",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release Nimbo"
+        }
+    ]
+}
