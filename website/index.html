@@ -81,6 +81,22 @@ h3 { font-size: clamp(1.25rem, 1.1rem + 0.7vw, 1.6rem); letter-spacing: -0.02em;
 .btn.ghost:hover { background: rgba(255,255,255,0.12); }
 .btn.small { padding: 10px 18px; font-size: 0.92rem; }
 
+/* Comando de instalación / install command */
+.cmd { display: flex; align-items: center; gap: 10px; width: min(100%, 700px); padding: 8px 8px 8px 18px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.22);
+  background: rgba(4,8,22,0.62); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); text-align: left; transition: border-color 0.25s, box-shadow 0.25s; }
+.cmd:hover { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent); }
+.cmd code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font: 500 clamp(0.78rem, 0.72rem + 0.3vw, 0.95rem)/1.4 ui-monospace, "SF Mono", Menlo, monospace; padding: 8px 0; scrollbar-width: none; }
+.cmd code::-webkit-scrollbar { display: none; }
+.cmd code::before { content: "$ "; color: var(--accent); }
+.copy { flex: none; display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 11px; padding: 10px 15px; background: var(--ink); color: var(--night); font: 600 0.88rem var(--body); cursor: pointer; transition: transform 0.15s, background 0.2s; }
+.copy:hover { transform: scale(1.04); }
+.copy:active { transform: scale(0.94); }
+.copy.done { background: #8ff0b0; }
+.cmd-label { color: var(--muted); font-size: 0.92rem; margin-bottom: 8px; }
+.hero .cmd-wrap { display: flex; flex-direction: column; align-items: center; margin-top: 22px; }
+.badge { display: inline-block; margin-left: 8px; padding: 2px 9px; border-radius: 99px; background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent); font: 600 0.72rem var(--body); letter-spacing: 0.04em; vertical-align: middle; }
+.install-alt { margin-top: clamp(22px, 3vw, 32px); }
+
 /* Portada / hero */
 .hero { padding-top: clamp(112px, 16vw, 176px); padding-bottom: clamp(36px, 6vw, 72px); text-align: center; }
 .hero h1 { font-size: clamp(2.9rem, 1rem + 9.4vw, 8rem); letter-spacing: -0.05em; line-height: 0.94; }
@@ -196,6 +212,8 @@ footer a { text-underline-offset: 3px; }
   #winB { left: 40%; top: 44%; width: 55%; height: 36%; }
   .dock { width: 62%; }
   .cta .btn { flex: 1 1 100%; }
+  .cmd { padding-left: 12px; gap: 8px; }
+  .copy { padding: 10px 12px; }
 }
 @media (max-width: 380px) { .brand span { display: none; } }
 @media (prefers-reduced-motion: reduce) {
@@ -235,7 +253,11 @@ footer a { text-underline-offset: 3px; }
       </a>
       <a class="btn ghost" href="#demo"><span data-l="es">Pruébalo aquí mismo</span><span data-l="en">Try it right here</span></a>
     </div>
-    <p class="fine fade-up" style="--d:1.05s"><span data-l="es">macOS 14 o posterior · Apple silicon e Intel · sin cuentas ni permisos</span><span data-l="en">macOS 14 or later · Apple silicon and Intel · no accounts, no permissions</span></p>
+    <div class="cmd-wrap fade-up" style="--d:1s">
+      <p class="cmd-label"><span data-l="es">O instálala en un paso desde la Terminal, sin avisos de seguridad:</span><span data-l="en">Or install it in one step from the Terminal, with no security warnings:</span></p>
+      <div class="cmd"><code>curl -fsSL https://nimbo.samdev.space/install.sh | bash</code><button class="copy" type="button" data-copy>Copy</button></div>
+    </div>
+    <p class="fine fade-up" style="--d:1.1s"><span data-l="es">macOS 14 o posterior · Apple silicon e Intel · sin cuentas ni permisos</span><span data-l="en">macOS 14 or later · Apple silicon and Intel · no accounts, no permissions</span></p>
   </section>
 
   <section class="demo wrap" id="demo" aria-labelledby="demo-title">
@@ -303,12 +325,19 @@ footer a { text-underline-offset: 3px; }
   <section class="wrap" id="install">
     <span class="kicker reveal"><span data-l="es">Instalar</span><span data-l="en">Install</span></span>
     <h2 class="reveal"><span data-l="es">Lista en un minuto.</span><span data-l="en">Ready in a minute.</span></h2>
-    <div class="steps">
+    <div class="reveal" style="margin-top:clamp(26px,4vw,40px)">
+      <h3><span data-l="es">La forma más fácil</span><span data-l="en">The easiest way</span><span class="badge"><span data-l="es">Recomendado</span><span data-l="en">Recommended</span></span></h3>
+      <p class="lead" style="margin-top:8px;margin-bottom:16px"><span data-l="es">Abre la Terminal (Cmd + Espacio, escribe «Terminal»), pega este comando y pulsa Enter. Descarga Nimbo, la instala en Aplicaciones y la abre, sin el aviso de seguridad de macOS.</span><span data-l="en">Open Terminal (Cmd + Space, type “Terminal”), paste this command and press Return. It downloads Nimbo, installs it in Applications and opens it, with no macOS security warning.</span></p>
+      <div class="cmd"><code>curl -fsSL https://nimbo.samdev.space/install.sh | bash</code><button class="copy" type="button" data-copy>Copy</button></div>
+      <p class="fine"><span data-l="es">No pide contraseña ni instala nada más. Puedes leer el script antes: <a href="install.sh">ver install.sh</a>.</span><span data-l="en">It asks for no password and installs nothing else. You can read the script first: <a href="install.sh">view install.sh</a>.</span></p>
+    </div>
+    <h3 class="reveal install-alt"><span data-l="es">O con el instalador</span><span data-l="en">Or with the installer</span></h3>
+    <div class="steps" style="margin-top:16px">
       <div class="step reveal" style="--n:0"><h3><span data-l="es">Descarga</span><span data-l="en">Download</span></h3><p><span data-l="es">Baja Nimbo.dmg. Funciona en Apple silicon e Intel.</span><span data-l="en">Get Nimbo.dmg. It runs on Apple silicon and Intel.</span></p></div>
       <div class="step reveal" style="--n:1"><h3><span data-l="es">Arrastra</span><span data-l="en">Drag</span></h3><p><span data-l="es">Abre el archivo y arrastra Nimbo a Aplicaciones.</span><span data-l="en">Open the file and drag Nimbo into Applications.</span></p></div>
       <div class="step reveal" style="--n:2"><h3><span data-l="es">Elige tu ciudad</span><span data-l="en">Pick your city</span></h3><p><span data-l="es">Nimbo aparece en la barra de menús. Busca tu ciudad y listo.</span><span data-l="en">Nimbo shows up in the menu bar. Search for your city and you're set.</span></p></div>
     </div>
-    <p class="note reveal"><span data-l="es"><strong>La primera vez macOS la bloqueará</strong> porque todavía no está notarizada por Apple. Ve a Ajustes del Sistema › Privacidad y seguridad y pulsa «Abrir igualmente».</span><span data-l="en"><strong>macOS will block it the first time</strong> because it is not notarized by Apple yet. Go to System Settings › Privacy &amp; Security and click “Open Anyway”.</span></p>
+    <p class="note reveal"><span data-l="es"><strong>Con el instalador, macOS la bloqueará la primera vez</strong> porque todavía no está notarizada por Apple. Pulsa «Listo», ve a Ajustes del Sistema › Privacidad y seguridad y pulsa «Abrir igualmente». Con el comando de arriba no aparece este aviso.</span><span data-l="en"><strong>With the installer, macOS will block it the first time</strong> because it is not notarized by Apple yet. Click “Done”, go to System Settings › Privacy &amp; Security and click “Open Anyway”. The command above skips this warning.</span></p>
     <div class="cta" style="justify-content:flex-start">
       <a class="btn" href="https://github.com/samRgarcia/nimbo/releases/latest/download/Nimbo.dmg"><span data-l="es">Descargar Nimbo.dmg</span><span data-l="en">Download Nimbo.dmg</span></a>
       <a class="btn ghost" href="https://github.com/samRgarcia/nimbo" rel="noopener"><span data-l="es">Ver el código</span><span data-l="en">View the source</span></a>
@@ -321,6 +350,7 @@ footer a { text-underline-offset: 3px; }
     <div class="faq">
       <details class="reveal"><summary><span data-l="es">¿Cuánto cuesta?</span><span data-l="en">How much does it cost?</span></summary><p><span data-l="es">Nada. Nimbo es gratis: sin pagos, sin suscripción y sin anuncios.</span><span data-l="en">Nothing. Nimbo is free: no payments, no subscription and no ads.</span></p></details>
       <details class="reveal"><summary><span data-l="es">¿Estorba para trabajar?</span><span data-l="en">Does it get in the way of work?</span></summary><p><span data-l="es">No. Los efectos dejan pasar todos los clics, se ocultan en apps a pantalla completa y puedes pausarlos o bajar la intensidad desde la barra de menús.</span><span data-l="en">No. The effects let every click through, hide in full-screen apps, and you can pause them or lower the intensity from the menu bar.</span></p></details>
+      <details class="reveal"><summary><span data-l="es">macOS dice que no puede verificar Nimbo. ¿Es seguro?</span><span data-l="en">macOS says it can't verify Nimbo. Is it safe?</span></summary><p><span data-l="es">Ese aviso sale con toda app que no pasa por la notarización de Apple, un trámite de pago. El código de Nimbo es abierto y puedes revisarlo en GitHub. Para abrirla: pulsa «Listo», ve a Ajustes del Sistema › Privacidad y seguridad y pulsa «Abrir igualmente». O instálala con el comando de la Terminal y no verás el aviso.</span><span data-l="en">macOS shows that warning for any app that has not gone through Apple's paid notarization. Nimbo's code is open and you can review it on GitHub. To open it: click “Done”, go to System Settings › Privacy &amp; Security and click “Open Anyway”. Or install it with the Terminal command and you won't see the warning.</span></p></details>
       <details class="reveal"><summary><span data-l="es">¿Qué datos envía?</span><span data-l="en">What data does it send?</span></summary><p><span data-l="es">Solo las coordenadas redondeadas de la ciudad que elijas, a Open-Meteo, para consultar el clima. La posición de tus ventanas nunca sale de tu Mac.</span><span data-l="en">Only the rounded coordinates of the city you choose, to Open-Meteo, to look up the weather. Your window positions never leave your Mac.</span></p></details>
       <details class="reveal"><summary><span data-l="es">¿Funciona con varios monitores?</span><span data-l="en">Does it work with several displays?</span></summary><p><span data-l="es">Sí, dibuja en todas las pantallas. El taller de invierno vive en la pantalla principal.</span><span data-l="en">Yes, it draws on every display. The winter workshop lives on the main one.</span></p></details>
     </div>
@@ -340,7 +370,7 @@ footer a { text-underline-offset: 3px; }
   <div class="wrap">
     <span>© 2026 Nimbo</span>
     <span><span data-l="es">Datos del clima:</span><span data-l="en">Weather data:</span> <a href="https://open-meteo.com/" rel="noopener">Open-Meteo</a> (CC BY 4.0)</span>
-    <a href="https://github.com/samRgarcia/nimbo" rel="noopener">GitHub</a>
+    <span><a href="https://github.com/samRgarcia/nimbo" rel="noopener">GitHub</a> · <a href="install.sh">install.sh</a></span>
   </div>
 </footer>
 
@@ -351,6 +381,7 @@ footer a { text-underline-offset: 3px; }
   var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   /* ---------- Idioma / language ---------- */
+  var COPY = { es: { copy: "Copiar", copied: "¡Copiado!", manual: "Selecciónalo y copia" }, en: { copy: "Copy", copied: "Copied!", manual: "Select and copy" } };
   var TITLES = { es: "Nimbo · Clima vivo en el escritorio de tu Mac", en: "Nimbo · Live weather on your Mac desktop" };
   var lang = null;
   try { lang = localStorage.getItem("nimbo-lang"); } catch (e) {}
@@ -361,6 +392,7 @@ footer a { text-underline-offset: 3px; }
     document.title = TITLES[lang];
     document.querySelectorAll("[data-lang-toggle]").forEach(function (b) { b.textContent = lang === "es" ? "EN" : "ES"; });
     document.querySelectorAll("video").forEach(function (v) { if (v.getAttribute("data-l") !== lang) v.pause(); });
+    document.querySelectorAll("[data-copy]").forEach(function (b) { if (!b.classList.contains("done")) b.textContent = COPY[lang].copy; });
     if (window.__nimboLabel) window.__nimboLabel();
   }
   applyLang();
@@ -369,6 +401,26 @@ footer a { text-underline-offset: 3px; }
       lang = lang === "es" ? "en" : "es";
       try { localStorage.setItem("nimbo-lang", lang); } catch (e) {}
       applyLang();
+    });
+  });
+
+  /* ---------- Copiar el comando / copy the command ---------- */
+  document.querySelectorAll("[data-copy]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var text = button.parentNode.querySelector("code").textContent;
+      var done = function () {
+        button.textContent = COPY[lang].copied; button.classList.add("done");
+        setTimeout(function () { button.classList.remove("done"); button.textContent = COPY[lang].copy; }, 1800);
+      };
+      var fail = function () { button.textContent = COPY[lang].manual; };
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, fail);
+      else {
+        var area = document.createElement("textarea");
+        area.value = text; area.style.position = "fixed"; area.style.opacity = "0";
+        document.body.appendChild(area); area.select();
+        try { document.execCommand("copy") ? done() : fail(); } catch (e) { fail(); }
+        document.body.removeChild(area);
+      }
     });
   });
 

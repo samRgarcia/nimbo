@@ -31,10 +31,16 @@ Free. Requires macOS 14 or later (Apple silicon or Intel). Website: [nimbo.samde
 
 ## Install
 
-Download [Nimbo.dmg](https://github.com/samRgarcia/nimbo/releases/latest/download/Nimbo.dmg),
+The easiest way: open Terminal, paste this and press Return. It downloads Nimbo, installs it in Applications and opens it, with no security warning.
+
+```bash
+curl -fsSL https://nimbo.samdev.space/install.sh | bash
+```
+
+Or download [Nimbo.dmg](https://github.com/samRgarcia/nimbo/releases/latest/download/Nimbo.dmg),
 open it and drag Nimbo into Applications. It shows up as an icon in the menu bar.
 
-Nimbo is not notarized by Apple yet, so macOS will block it the first time:
+If you use the `.dmg`: Nimbo is not notarized by Apple yet, so macOS will block it the first time:
 go to System Settings › Privacy & Security and click "Open Anyway".
 
 ## Features
@@ -142,10 +148,16 @@ Gratis. Requiere macOS 14 o posterior (Apple silicon o Intel). Sitio: [nimbo.sam
 
 ### Instalar
 
-Descarga [Nimbo.dmg](https://github.com/samRgarcia/nimbo/releases/latest/download/Nimbo.dmg),
+La forma más fácil: abre la Terminal, pega esto y pulsa Enter. Descarga Nimbo, la instala en Aplicaciones y la abre, sin el aviso de seguridad.
+
+```bash
+curl -fsSL https://nimbo.samdev.space/install.sh | bash
+```
+
+O descarga [Nimbo.dmg](https://github.com/samRgarcia/nimbo/releases/latest/download/Nimbo.dmg),
 ábrelo y arrastra Nimbo a Aplicaciones. Aparece como un icono en la barra de menús.
 
-Nimbo todavía no está notarizada por Apple, así que macOS la bloqueará la primera vez:
+Si usas el `.dmg`: Nimbo todavía no está notarizada por Apple, así que macOS la bloqueará la primera vez:
 ve a Ajustes del Sistema › Privacidad y seguridad y pulsa "Abrir igualmente".
 
 ### Qué hace

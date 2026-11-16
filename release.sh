@@ -45,8 +45,14 @@ NOTES="$(mktemp)"
 cat > "$NOTES" <<NOTES_EOF
 ## Nimbo $VERSION
 
-Descarga \`Nimbo.dmg\` aquí abajo, ábrelo y arrastra Nimbo a Aplicaciones.
-Download \`Nimbo.dmg\` below, open it and drag Nimbo into Applications.
+**Instalar / Install**
+
+\`\`\`bash
+curl -fsSL https://nimbo.samdev.space/install.sh | bash
+\`\`\`
+
+O descarga \`Nimbo.dmg\` aquí abajo, ábrelo y arrastra Nimbo a Aplicaciones.
+Or download \`Nimbo.dmg\` below, open it and drag Nimbo into Applications.
 
 Requiere macOS 14 o posterior (Apple silicon o Intel). / Requires macOS 14 or later (Apple silicon or Intel).
 
