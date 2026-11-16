@@ -1,10 +1,11 @@
 #!/bin/bash
 # Compila Nimbo y arma build/Nimbo.app.
+# Builds Nimbo and assembles build/Nimbo.app.
 #
-# Variables opcionales:
-#   UNIVERSAL=1   compila para Apple silicon e Intel a la vez (para distribuir)
-#   SIGN_ID="Developer ID Application: Tu Nombre (TEAMID)"   firma para distribuir
-#   NO_OPEN=1     no abre la app al terminar
+# Variables opcionales / Optional variables:
+#   UNIVERSAL=1   compila para Apple silicon e Intel a la vez / builds for Apple silicon and Intel
+#   SIGN_ID="Developer ID Application: Tu Nombre (TEAMID)"   firma para distribuir / signs for distribution
+#   NO_OPEN=1     no abre la app al terminar / does not open the app when done
 set -euo pipefail
 cd "$(dirname "$0")"
 

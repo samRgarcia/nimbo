@@ -1,13 +1,15 @@
 #!/bin/bash
 # Crea el instalador de Nimbo: un archivo .dmg con la app y un acceso a Aplicaciones.
+# Creates the Nimbo installer: a .dmg file with the app and a shortcut to Applications.
 #
 # Sin cuenta de desarrollador (macOS avisará al abrirlo en otro equipo):
+# Without a developer account (macOS will warn when it is opened on another Mac):
 #   bash make-dmg.sh
 #
-# Firmado y notarizado (se abre sin avisos):
+# Firmado y notarizado (se abre sin avisos) / Signed and notarized (opens with no warnings):
 #   SIGN_ID="Developer ID Application: Tu Nombre (TEAMID)" NOTARY_PROFILE="nimbo" bash make-dmg.sh
 #
-# NOTARY_PROFILE es un perfil guardado una sola vez con:
+# NOTARY_PROFILE es un perfil guardado una sola vez con / is a profile saved once with:
 #   xcrun notarytool store-credentials "nimbo" --apple-id TU_CORREO --team-id TEAMID --password CONTRASEÑA_DE_APP
 set -euo pipefail
 cd "$(dirname "$0")"

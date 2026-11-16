@@ -1,12 +1,15 @@
 #!/bin/bash
 # Publica una versión de Nimbo en GitHub Releases.
+# Publishes a Nimbo version to GitHub Releases.
 #
-# Uso:   bash release.sh
+# Uso / Usage:   bash release.sh
 #
 # Toma la versión de Support/Info.plist, genera el instalador y lo sube como:
-#   Nimbo.dmg            nombre fijo, para un enlace de descarga que no cambia
-#   Nimbo-<versión>.dmg  copia con el número de versión
+# Reads the version from Support/Info.plist, builds the installer and uploads it as:
+#   Nimbo.dmg            nombre fijo / fixed name, for a download link that never changes
+#   Nimbo-<versión>.dmg  copia con el número de versión / copy with the version number
 # Si la versión ya existe en GitHub, reemplaza sus archivos.
+# If the version already exists on GitHub, its files are replaced.
 set -euo pipefail
 cd "$(dirname "$0")"
 
