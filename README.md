@@ -82,6 +82,11 @@ bash release.sh
 
 Builds the universal `.dmg` and uploads it to GitHub Releases. The version number comes from `Support/Info.plist`.
 
+## Website and video
+
+- `website/` is the landing page: one static `index.html`, English and Spanish, with a live demo of the scenes. On Vercel, set **Root Directory** to `website`; there is no build step.
+- `video/` is the 30-second promo video, made with [HyperFrames](https://github.com/heygen-com/hyperframes). `bash video/render.sh` renders it in both languages into `website/media/`.
+
 ## Project layout
 
 | File | Contents |
@@ -187,6 +192,11 @@ bash release.sh
 ```
 
 Genera el `.dmg` universal y lo sube a GitHub Releases. El número de versión sale de `Support/Info.plist`.
+
+### Sitio web y video
+
+- `website/` es la página de presentación: un solo `index.html` estático, en inglés y español, con una demostración en vivo de las escenas. En Vercel, pon **Root Directory** en `website`; no hay paso de compilación.
+- `video/` es el video de 30 segundos, hecho con [HyperFrames](https://github.com/heygen-com/hyperframes). `bash video/render.sh` lo genera en los dos idiomas dentro de `website/media/`.
 
 ### Estructura
 

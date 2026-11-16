@@ -1,0 +1,834 @@
+<!doctype html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nimbo · Live weather on your Mac desktop</title>
+<meta name="description" content="Free macOS app: snow gathers on your windows and the Dock, rain splashes on window edges, and the scene follows the real weather in your city. App gratis para Mac con clima vivo en el escritorio.">
+<meta name="theme-color" content="#0a1024">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Nimbo · Live weather on your Mac desktop">
+<meta property="og:description" content="Snow on your windows, rain on the edges, ten scenes that follow the real weather. Free for Mac.">
+<meta property="og:image" content="media/poster.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" href="media/icon.png">
+<link rel="preload" href="fonts/bricolage-grotesque-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face { font-family: "Bricolage"; font-weight: 700; font-display: swap; src: url("fonts/bricolage-grotesque-latin-700-normal.woff2") format("woff2"); }
+@font-face { font-family: "Plex"; font-weight: 400; font-display: swap; src: url("fonts/ibm-plex-sans-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Plex"; font-weight: 500; font-display: swap; src: url("fonts/ibm-plex-sans-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Plex"; font-weight: 600; font-display: swap; src: url("fonts/ibm-plex-sans-latin-600-normal.woff2") format("woff2"); }
+
+/* Colores que cambian con la escena, con transición suave / scene colours, smoothly animated */
+@property --sky-a { syntax: "<color>"; inherits: true; initial-value: #283a6c; }
+@property --sky-b { syntax: "<color>"; inherits: true; initial-value: #7e9ccc; }
+@property --accent { syntax: "<color>"; inherits: true; initial-value: #8fc2ff; }
+
+:root {
+  --night: #0a1024; --night-2: #111a36; --ink: #f4f7ff; --muted: #a9b6d6; --line: rgba(255,255,255,0.13);
+  --glass: rgba(255,255,255,0.06); --display: "Bricolage", "Plex", system-ui, sans-serif; --body: "Plex", system-ui, -apple-system, sans-serif;
+  --wrap: min(1160px, 100% - clamp(32px, 7vw, 96px));
+  transition: --sky-a 1.2s ease, --sky-b 1.2s ease, --accent 1.2s ease;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body { background: var(--night); color: var(--ink); font: 400 clamp(1rem, 0.95rem + 0.25vw, 1.125rem)/1.6 var(--body); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+img, video, canvas, svg { max-width: 100%; display: block; }
+a { color: inherit; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 8px; }
+
+/* Dos idiomas: solo se muestra el activo / two languages: only the active one shows */
+html[data-lang="es"] [data-l="en"], html[data-lang="en"] [data-l="es"] { display: none !important; }
+
+/* Fondo: auroras lentas / background: slow auroras */
+.aurora { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.aurora i { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.5; will-change: transform; }
+.aurora i:nth-child(1) { width: 60vmax; height: 60vmax; left: 45%; top: -30vmax; background: var(--sky-a); animation: drift 26s ease-in-out infinite alternate; }
+.aurora i:nth-child(2) { width: 50vmax; height: 50vmax; left: -20vmax; top: 40%; background: #1b2c5c; animation: drift 32s ease-in-out infinite alternate-reverse; }
+.aurora i:nth-child(3) { width: 34vmax; height: 34vmax; right: -10vmax; top: 120vh; background: var(--accent); opacity: 0.16; animation: drift 38s ease-in-out infinite alternate; }
+@keyframes drift { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(-8vmax, 6vmax, 0) scale(1.18); } }
+
+.wrap { width: var(--wrap); margin-inline: auto; }
+section { padding-block: clamp(64px, 10vw, 132px); }
+section[id] { scroll-margin-top: 76px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 700; letter-spacing: -0.035em; line-height: 1.02; text-wrap: balance; }
+h2 { font-size: clamp(2.1rem, 1.2rem + 4.4vw, 4.4rem); }
+h3 { font-size: clamp(1.25rem, 1.1rem + 0.7vw, 1.6rem); letter-spacing: -0.02em; line-height: 1.15; }
+.kicker { display: inline-flex; align-items: center; gap: 10px; font: 600 0.82rem var(--body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+.kicker::before { content: ""; width: 26px; height: 2px; background: currentColor; border-radius: 2px; }
+.lead { color: var(--muted); font-size: clamp(1.05rem, 0.98rem + 0.5vw, 1.3rem); max-width: 60ch; margin-top: 18px; text-wrap: pretty; }
+
+/* Barra superior / top bar */
+.nav { position: fixed; inset: 0 0 auto 0; z-index: 50; padding: 12px 0; transition: background 0.3s, backdrop-filter 0.3s, border-color 0.3s; border-bottom: 1px solid transparent; }
+.nav.stuck { background: rgba(10,16,36,0.72); -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4); border-color: var(--line); }
+.nav .wrap { display: flex; align-items: center; gap: clamp(10px, 2vw, 26px); }
+.brand { display: inline-flex; align-items: center; gap: 10px; font: 700 1.35rem var(--display); letter-spacing: -0.03em; text-decoration: none; margin-right: auto; }
+.brand img { width: 38px; height: 38px; }
+.navlink { text-decoration: none; color: var(--muted); font-weight: 500; font-size: 0.95rem; transition: color 0.2s; }
+.navlink:hover { color: var(--ink); }
+.lang { border: 1px solid var(--line); background: var(--glass); border-radius: 999px; padding: 7px 13px; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: background 0.2s, border-color 0.2s; }
+.lang:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.3); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 999px; padding: 15px 26px; font-weight: 600; text-decoration: none; cursor: pointer; white-space: nowrap;
+  background: var(--ink); color: var(--night); transition: transform 0.25s cubic-bezier(.2,.9,.3,1.4), box-shadow 0.25s; box-shadow: 0 10px 30px -10px var(--accent); }
+.btn:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 18px 44px -10px var(--accent); }
+.btn:active { transform: translateY(0) scale(0.98); }
+.btn svg { width: 20px; height: 20px; }
+.btn.ghost { background: var(--glass); color: var(--ink); border: 1px solid var(--line); box-shadow: none; }
+.btn.ghost:hover { background: rgba(255,255,255,0.12); }
+.btn.small { padding: 10px 18px; font-size: 0.92rem; }
+
+/* Portada / hero */
+.hero { padding-top: clamp(112px, 16vw, 176px); padding-bottom: clamp(36px, 6vw, 72px); text-align: center; }
+.hero h1 { font-size: clamp(2.9rem, 1rem + 9.4vw, 8rem); letter-spacing: -0.05em; line-height: 0.94; }
+.hero h1 .w { display: inline-block; opacity: 0; transform: translateY(0.6em) rotate(4deg); animation: rise 0.9s cubic-bezier(.2,.8,.2,1) forwards; animation-delay: calc(var(--i) * 90ms + 120ms); }
+.hero h1 .glow { background: linear-gradient(100deg, #fff 10%, var(--accent) 60%, #fff 95%); background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: rise 0.9s cubic-bezier(.2,.8,.2,1) forwards, shine 7s linear infinite; animation-delay: calc(var(--i) * 90ms + 120ms), 1.2s; }
+@keyframes rise { to { opacity: 1; transform: none; } }
+@keyframes shine { to { background-position: -220% 0; } }
+.hero .lead { margin-inline: auto; }
+.cta { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: clamp(24px, 4vw, 38px); }
+.fine { margin-top: 16px; color: var(--muted); font-size: 0.9rem; }
+.fade-up { opacity: 0; transform: translateY(18px); animation: rise 0.9s cubic-bezier(.2,.8,.2,1) forwards; animation-delay: var(--d, 0.7s); }
+
+/* Demostración en vivo / live demo */
+.demo { padding-top: 0; }
+.stage-shell { position: relative; border-radius: clamp(18px, 2.6vw, 32px); padding: clamp(6px, 0.9vw, 10px); background: linear-gradient(140deg, rgba(255,255,255,0.28), rgba(255,255,255,0.04) 40%, rgba(255,255,255,0.14));
+  box-shadow: 0 50px 120px -30px rgba(0,0,0,0.7), 0 0 90px -30px var(--accent); transform: perspective(1600px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform 0.4s ease-out; }
+.stage { position: relative; aspect-ratio: 16 / 9.6; border-radius: clamp(13px, 2vw, 24px); overflow: hidden; background: linear-gradient(var(--sky-a), var(--sky-b)); touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.stage::after { content: ""; position: absolute; inset: 0; background: #060a1c; opacity: var(--dim, 0); transition: opacity 1.2s ease; pointer-events: none; z-index: 1; }
+.hills { position: absolute; inset: auto -6% -1px -6%; height: 34%; z-index: 0; }
+.hills i { position: absolute; bottom: -62%; border-radius: 50%; background: rgba(8,14,34,0.34); }
+.hills i:first-child { left: -8%; width: 70%; aspect-ratio: 2 / 1; }
+.hills i:last-child { right: -12%; width: 78%; aspect-ratio: 2 / 1; background: rgba(8,14,34,0.46); }
+.menubar { position: absolute; inset: 0 0 auto 0; height: 4.4%; min-height: 14px; background: rgba(255,255,255,0.16); display: flex; align-items: center; gap: 1.4%; padding-inline: 1.6%; z-index: 2; }
+.menubar i { width: 3%; height: 28%; border-radius: 99px; background: rgba(255,255,255,0.72); }
+.menubar i:first-child { width: 1.2%; }
+.menubar b { margin-left: auto; width: 1%; aspect-ratio: 1; border-radius: 50%; background: rgba(255,255,255,0.72); }
+.menubar b + b { margin-left: 0; }
+.win { position: absolute; z-index: 2; border-radius: clamp(6px, 1vw, 13px); background: #f6f7fa; box-shadow: 0 2.4vw 5vw rgba(5,10,30,0.42); cursor: grab; touch-action: none;
+  filter: brightness(var(--win-b, 1)); transition: filter 1.2s ease, box-shadow 0.25s; }
+.win.dragging { cursor: grabbing; box-shadow: 0 3.4vw 7vw rgba(5,10,30,0.6); transition: filter 1.2s ease; }
+.win .bar { height: 12%; min-height: 14px; background: #e6e8ee; border-radius: inherit; border-bottom-left-radius: 0; border-bottom-right-radius: 0; display: flex; align-items: center; gap: 1.4%; padding-left: 3%; }
+.win .bar i { width: 2.1%; min-width: 5px; aspect-ratio: 1; border-radius: 50%; background: #c4c9d4; }
+.win .bar u { width: 26%; height: 20%; border-radius: 99px; background: #cdd2dc; margin-left: 22%; }
+.win .side { position: absolute; left: 4%; top: 20%; bottom: 7%; width: 20%; border-radius: 6px; background: #e6e8ee; }
+.win .lines { position: absolute; left: 29%; right: 5%; top: 22%; bottom: 8%; display: flex; flex-direction: column; justify-content: space-between; }
+.win .lines b { height: 5%; min-height: 3px; border-radius: 99px; background: #d0d4dc; }
+#winA { left: 9%; top: 21%; width: 39%; height: 52%; }
+#winB { left: 56%; top: 35%; width: 33%; height: 46%; }
+.hint { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); padding: 6px 12px; border-radius: 99px; background: rgba(10,16,36,0.78); color: #fff; font: 600 clamp(0.6rem, 0.4rem + 0.9vw, 0.82rem) var(--body); white-space: nowrap; pointer-events: none; animation: bob 2.2s ease-in-out infinite; transition: opacity 0.4s; }
+.stage.touched .hint { opacity: 0; }
+@keyframes bob { 50% { transform: translate(-50%, -64%); } }
+.dock { position: absolute; z-index: 2; left: 50%; bottom: 2.4%; transform: translateX(-50%); width: min(38%, 440px); min-width: 180px; padding: 1% 1.4%; border-radius: clamp(8px, 1.4vw, 18px); background: rgba(255,255,255,0.3); display: flex; gap: 2.4%; }
+.dock i { flex: 1; aspect-ratio: 1; border-radius: 24%; }
+#sky { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; }
+.scene-name { position: absolute; left: 2.4%; top: 8%; z-index: 4; padding: 6px 14px; border-radius: 99px; background: rgba(10,16,36,0.72); font: 600 clamp(0.7rem, 0.5rem + 0.9vw, 1rem) var(--body); pointer-events: none; }
+
+.chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: clamp(18px, 3vw, 28px); }
+.chip { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--glass); border-radius: 999px; padding: 9px 16px; font-weight: 500; font-size: 0.94rem; cursor: pointer; transition: transform 0.2s, background 0.2s, border-color 0.2s, color 0.2s; }
+.chip:hover { transform: translateY(-2px); background: rgba(255,255,255,0.12); }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--night); border-color: var(--ink); }
+.chip i { width: 9px; height: 9px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
+.tools { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 14px; min-height: 44px; }
+.tools .btn { transition: opacity 0.3s, transform 0.25s cubic-bezier(.2,.9,.3,1.4); }
+.tools[hidden] { display: flex; visibility: hidden; }
+
+/* Aparición al hacer scroll / scroll reveal */
+.reveal { opacity: 0; transform: translateY(34px) scale(0.985); transition: opacity 0.8s cubic-bezier(.2,.8,.2,1), transform 0.8s cubic-bezier(.2,.8,.2,1); transition-delay: calc(var(--n, 0) * 80ms); }
+.reveal.in { opacity: 1; transform: none; }
+
+/* Funciones / features */
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: clamp(14px, 2vw, 22px); margin-top: clamp(30px, 5vw, 56px); }
+.card { position: relative; padding: clamp(22px, 3vw, 32px); border-radius: 24px; background: var(--glass); border: 1px solid var(--line); overflow: hidden; transition: transform 0.35s cubic-bezier(.2,.8,.2,1), border-color 0.35s, background 0.35s; }
+.card::before { content: ""; position: absolute; inset: 0; background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 0%), color-mix(in srgb, var(--accent) 26%, transparent), transparent 62%); opacity: 0; transition: opacity 0.35s; pointer-events: none; }
+.card:hover { transform: translateY(-6px); border-color: rgba(255,255,255,0.28); }
+.card:hover::before { opacity: 1; }
+.card p { color: var(--muted); margin-top: 10px; font-size: 1rem; }
+.ic { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; margin-bottom: 18px; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+.ic svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.card:hover .ic svg { animation: wiggle 0.7s ease; }
+@keyframes wiggle { 30% { transform: rotate(-12deg) scale(1.12); } 60% { transform: rotate(9deg) scale(1.08); } }
+
+/* Video */
+.video-frame { margin-top: clamp(26px, 4vw, 44px); border-radius: clamp(16px, 2.4vw, 28px); overflow: hidden; border: 1px solid var(--line); box-shadow: 0 40px 100px -30px rgba(0,0,0,0.75), 0 0 80px -34px var(--accent); background: var(--night-2); line-height: 0; }
+.video-frame video { width: 100%; height: auto; aspect-ratio: 16 / 9; }
+
+/* Números / stats */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-top: clamp(28px, 4vw, 46px); }
+.stat { padding: 22px; border-radius: 22px; border: 1px solid var(--line); background: var(--glass); text-align: center; }
+.stat b { display: block; font: 700 clamp(2.4rem, 1.6rem + 3vw, 3.8rem)/1 var(--display); letter-spacing: -0.04em; color: var(--accent); }
+.stat span { color: var(--muted); font-size: 0.95rem; }
+
+/* Instalar / install */
+.steps { counter-reset: step; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: clamp(14px, 2vw, 22px); margin-top: clamp(28px, 4vw, 46px); }
+.step { counter-increment: step; padding: clamp(22px, 3vw, 30px); border-radius: 24px; border: 1px solid var(--line); background: var(--glass); }
+.step::before { content: counter(step); display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--ink); color: var(--night); font: 700 1.2rem var(--display); margin-bottom: 16px; }
+.step p { color: var(--muted); margin-top: 8px; }
+.note { margin-top: 22px; padding: 18px 22px; border-radius: 18px; border: 1px dashed rgba(255,255,255,0.28); color: var(--muted); font-size: 0.96rem; }
+.note strong { color: var(--ink); font-weight: 600; }
+
+/* Preguntas / FAQ */
+.faq { margin-top: clamp(24px, 4vw, 40px); display: grid; gap: 12px; }
+details { border: 1px solid var(--line); border-radius: 20px; background: var(--glass); padding: 4px 22px; transition: background 0.3s, border-color 0.3s; }
+details[open] { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.24); }
+summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; font: 600 1.08rem var(--body); }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; font: 400 1.6rem/1 var(--body); color: var(--accent); transition: transform 0.3s; }
+details[open] summary::after { transform: rotate(45deg); }
+details p { color: var(--muted); padding-bottom: 18px; max-width: 70ch; }
+
+/* Cierre / closing */
+.final { text-align: center; }
+.final .box { padding: clamp(40px, 7vw, 88px) clamp(20px, 5vw, 60px); border-radius: clamp(24px, 4vw, 44px); border: 1px solid var(--line); background: linear-gradient(160deg, color-mix(in srgb, var(--sky-a) 70%, transparent), rgba(255,255,255,0.03)); position: relative; overflow: hidden; }
+.final img { width: clamp(84px, 12vw, 132px); margin: 0 auto 10px; animation: float 5s ease-in-out infinite; }
+@keyframes float { 50% { transform: translateY(-10px) rotate(-3deg); } }
+footer { padding: 34px 0 calc(34px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); color: var(--muted); font-size: 0.92rem; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 10px 26px; justify-content: space-between; }
+footer a { text-underline-offset: 3px; }
+
+@media (max-width: 720px) {
+  .navlink { display: none; }
+  .stage { aspect-ratio: 4 / 3.5; }
+  #winA { left: 5%; top: 17%; width: 56%; height: 42%; }
+  #winB { left: 40%; top: 44%; width: 55%; height: 36%; }
+  .dock { width: 62%; }
+  .cta .btn { flex: 1 1 100%; }
+}
+@media (max-width: 380px) { .brand span { display: none; } }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  .reveal, .fade-up, .hero h1 .w { opacity: 1; transform: none; }
+}
+</style>
+</head>
+<body>
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Nimbo"><img src="media/icon.png" alt="" width="38" height="38"><span>Nimbo</span></a>
+    <a class="navlink" href="#features"><span data-l="es">Funciones</span><span data-l="en">Features</span></a>
+    <a class="navlink" href="#video">Video</a>
+    <a class="navlink" href="#install"><span data-l="es">Instalar</span><span data-l="en">Install</span></a>
+    <a class="navlink" href="https://github.com/samRgarcia/nimbo" rel="noopener">GitHub</a>
+    <button class="lang" type="button" data-lang-toggle aria-label="Cambiar idioma / Switch language">ES</button>
+    <a class="btn small" href="https://github.com/samRgarcia/nimbo/releases/latest/download/Nimbo.dmg"><span data-l="es">Descargar</span><span data-l="en">Download</span></a>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero wrap">
+    <h1 data-l="en"><span class="w" style="--i:0">Your</span> <span class="w" style="--i:1">desktop</span><br><span class="w" style="--i:2">has</span> <span class="w glow" style="--i:3">weather</span> <span class="w" style="--i:4">now.</span></h1>
+    <h1 data-l="es"><span class="w" style="--i:0">Tu</span> <span class="w" style="--i:1">escritorio</span><br><span class="w" style="--i:2">ya</span> <span class="w" style="--i:3">tiene</span> <span class="w glow" style="--i:4">clima.</span></h1>
+    <p class="lead fade-up" style="--d:0.75s">
+      <span data-l="es">Nimbo hace que nieve sobre tus ventanas y el Dock, que la lluvia salpique en los bordes y que la escena cambie sola según el clima real de tu ciudad.</span>
+      <span data-l="en">Nimbo makes snow gather on your windows and the Dock, rain splash on the edges, and the scene change on its own to match the real weather in your city.</span>
+    </p>
+    <div class="cta fade-up" style="--d:0.9s">
+      <a class="btn" href="https://github.com/samRgarcia/nimbo/releases/latest/download/Nimbo.dmg">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
+        <span data-l="es">Descargar gratis para Mac</span><span data-l="en">Download free for Mac</span>
+      </a>
+      <a class="btn ghost" href="#demo"><span data-l="es">Pruébalo aquí mismo</span><span data-l="en">Try it right here</span></a>
+    </div>
+    <p class="fine fade-up" style="--d:1.05s"><span data-l="es">macOS 14 o posterior · Apple silicon e Intel · sin cuentas ni permisos</span><span data-l="en">macOS 14 or later · Apple silicon and Intel · no accounts, no permissions</span></p>
+  </section>
+
+  <section class="demo wrap" id="demo" aria-labelledby="demo-title">
+    <h2 id="demo-title" style="position:absolute;left:-9999px"><span data-l="es">Demostración interactiva</span><span data-l="en">Interactive demo</span></h2>
+    <div class="stage-shell reveal" id="shell">
+      <div class="stage" id="stage">
+        <div class="hills" aria-hidden="true"><i></i><i></i></div>
+        <div class="menubar" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b><b></b></div>
+        <div class="win" id="winA" data-ledge="win"><div class="bar"><i></i><i></i><i></i><u></u></div><div class="side"></div><div class="lines"><b style="width:82%"></b><b style="width:94%"></b><b style="width:64%"></b><b style="width:72%"></b><b style="width:88%"></b><b style="width:56%"></b></div>
+          <span class="hint"><span data-l="es">Arrástrame</span><span data-l="en">Drag me</span></span></div>
+        <div class="win" id="winB" data-ledge="win"><div class="bar"><i></i><i></i><i></i><u></u></div><div class="side"></div><div class="lines"><b style="width:74%"></b><b style="width:90%"></b><b style="width:60%"></b><b style="width:84%"></b><b style="width:48%"></b></div></div>
+        <div class="dock" data-ledge="dock" aria-hidden="true"><i style="background:#6084c4"></i><i style="background:#d67860"></i><i style="background:#6eaa82"></i><i style="background:#dcb45a"></i><i style="background:#9678be"></i><i style="background:#5aa0be"></i><i style="background:#c86e96"></i></div>
+        <canvas id="sky" aria-hidden="true"></canvas>
+        <div class="scene-name" id="sceneName" aria-live="polite"></div>
+      </div>
+    </div>
+    <div class="chips reveal" id="chips" role="group" aria-label="Escenas / Scenes"></div>
+    <div class="tools" id="tools">
+      <button class="btn ghost small" type="button" data-act="snowman"><span data-l="es">Hacer un muñeco</span><span data-l="en">Build a snowman</span></button>
+      <button class="btn ghost small" type="button" data-act="plow"><span data-l="es">Enviar el quitanieves</span><span data-l="en">Send the snowplow</span></button>
+    </div>
+    <p class="fine" style="text-align:center"><span data-l="es">Es una demostración en el navegador: arrastra las ventanas y pasa el cursor por la nieve. La app hace lo mismo con tus ventanas de verdad.</span><span data-l="en">This is an in-browser demo: drag the windows and sweep the cursor through the snow. The app does the same with your real windows.</span></p>
+  </section>
+
+  <section class="wrap" id="features">
+    <span class="kicker reveal"><span data-l="es">Funciones</span><span data-l="en">Features</span></span>
+    <h2 class="reveal"><span data-l="es">El clima de afuera, en tu pantalla.</span><span data-l="en">The weather outside, on your screen.</span></h2>
+    <div class="grid">
+      <article class="card reveal" style="--n:0"><div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3v18M4.2 7.5l15.6 9M19.8 7.5l-15.6 9M12 6l-2-2m2 2l2-2M12 18l-2 2m2-2l2 2"/></svg></div>
+        <h3><span data-l="es">Nieve que se acumula</span><span data-l="en">Snow that piles up</span></h3>
+        <p><span data-l="es">Se junta en el borde de cada ventana, en el Dock y en el piso. Mueve una ventana y cae.</span><span data-l="en">It gathers on every window edge, on the Dock and on the floor. Move a window and it falls.</span></p></article>
+      <article class="card reveal" style="--n:1"><div class="ic"><svg viewBox="0 0 24 24"><path d="M7 16a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 17 9.5a3.5 3.5 0 0 1 0 7"/><path d="M9 18.5l-1 2.5M13 18.5l-1 2.5M17 18.5l-1 2.5"/></svg></div>
+        <h3><span data-l="es">Clima real de tu ciudad</span><span data-l="en">Your city's real weather</span></h3>
+        <p><span data-l="es">Elige tu ciudad y la escena cambia sola cada 15 minutos, con el viento y la intensidad reales.</span><span data-l="en">Pick your city and the scene updates itself every 15 minutes, with the real wind and intensity.</span></p></article>
+      <article class="card reveal" style="--n:2"><div class="ic"><svg viewBox="0 0 24 24"><circle cx="6" cy="7" r="2.2"/><circle cx="17.5" cy="6" r="2.2"/><circle cx="12" cy="13" r="2.2"/><circle cx="6.5" cy="18" r="2.2"/><circle cx="18" cy="17.5" r="2.2"/></svg></div>
+        <h3><span data-l="es">Diez escenas</span><span data-l="en">Ten scenes</span></h3>
+        <p><span data-l="es">Nieve, lluvia, pétalos, hojas, luciérnagas, meteoros, tormenta, nublado, neblina y despejado.</span><span data-l="en">Snow, rain, petals, leaves, fireflies, meteors, storm, cloudy, mist and clear.</span></p></article>
+      <article class="card reveal" style="--n:3"><div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="16" r="5"/><circle cx="12" cy="7.5" r="3.4"/><path d="M4 13l4 2M20 13l-4 2"/></svg></div>
+        <h3><span data-l="es">Taller de invierno</span><span data-l="en">Winter workshop</span></h3>
+        <p><span data-l="es">Muñecos de nieve, árbol de Navidad con adornos, quitanieves y una cabaña con chimenea.</span><span data-l="en">Snowmen, a Christmas tree with ornaments, a snowplow and a cabin with a chimney.</span></p></article>
+      <article class="card reveal" style="--n:4"><div class="ic"><svg viewBox="0 0 24 24"><path d="M13 2L5 13.5h5.5L9.5 22 19 9.5h-6z"/></svg></div>
+        <h3><span data-l="es">Ligera con tu batería</span><span data-l="en">Easy on your battery</span></h3>
+        <p><span data-l="es">Baja a 30 cuadros en escenas tranquilas, tiene modo de ahorro y se detiene con la pantalla apagada.</span><span data-l="en">It drops to 30 frames on calm scenes, has an energy saver and stops when the screen is off.</span></p></article>
+      <article class="card reveal" style="--n:5"><div class="ic"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg></div>
+        <h3><span data-l="es">Privada por diseño</span><span data-l="en">Private by design</span></h3>
+        <p><span data-l="es">No pide permisos ni cuentas. Solo envía las coordenadas redondeadas de tu ciudad para consultar el clima.</span><span data-l="en">No permissions and no accounts. It only sends your city's rounded coordinates to look up the weather.</span></p></article>
+    </div>
+    <div class="stats">
+      <div class="stat reveal" style="--n:0"><b data-count="10">10</b><span data-l="es">escenas</span><span data-l="en">scenes</span></div>
+      <div class="stat reveal" style="--n:1"><b data-count="24">24</b><span data-l="es">horas de pronóstico</span><span data-l="en">hours of forecast</span></div>
+      <div class="stat reveal" style="--n:2"><b data-count="0">0</b><span data-l="es">permisos</span><span data-l="en">permissions</span></div>
+      <div class="stat reveal" style="--n:3"><b>$0</b><span data-l="es">para siempre</span><span data-l="en">forever</span></div>
+    </div>
+  </section>
+
+  <section class="wrap" id="video">
+    <span class="kicker reveal">Video</span>
+    <h2 class="reveal"><span data-l="es">Nimbo en 30 segundos.</span><span data-l="en">Nimbo in 30 seconds.</span></h2>
+    <div class="video-frame reveal">
+      <video data-l="es" controls muted loop playsinline preload="none" poster="media/poster.jpg"><source src="media/nimbo-es.mp4" type="video/mp4"></video>
+      <video data-l="en" controls muted loop playsinline preload="none" poster="media/poster.jpg"><source src="media/nimbo-en.mp4" type="video/mp4"></video>
+    </div>
+  </section>
+
+  <section class="wrap" id="install">
+    <span class="kicker reveal"><span data-l="es">Instalar</span><span data-l="en">Install</span></span>
+    <h2 class="reveal"><span data-l="es">Lista en un minuto.</span><span data-l="en">Ready in a minute.</span></h2>
+    <div class="steps">
+      <div class="step reveal" style="--n:0"><h3><span data-l="es">Descarga</span><span data-l="en">Download</span></h3><p><span data-l="es">Baja Nimbo.dmg. Funciona en Apple silicon e Intel.</span><span data-l="en">Get Nimbo.dmg. It runs on Apple silicon and Intel.</span></p></div>
+      <div class="step reveal" style="--n:1"><h3><span data-l="es">Arrastra</span><span data-l="en">Drag</span></h3><p><span data-l="es">Abre el archivo y arrastra Nimbo a Aplicaciones.</span><span data-l="en">Open the file and drag Nimbo into Applications.</span></p></div>
+      <div class="step reveal" style="--n:2"><h3><span data-l="es">Elige tu ciudad</span><span data-l="en">Pick your city</span></h3><p><span data-l="es">Nimbo aparece en la barra de menús. Busca tu ciudad y listo.</span><span data-l="en">Nimbo shows up in the menu bar. Search for your city and you're set.</span></p></div>
+    </div>
+    <p class="note reveal"><span data-l="es"><strong>La primera vez macOS la bloqueará</strong> porque todavía no está notarizada por Apple. Ve a Ajustes del Sistema › Privacidad y seguridad y pulsa «Abrir igualmente».</span><span data-l="en"><strong>macOS will block it the first time</strong> because it is not notarized by Apple yet. Go to System Settings › Privacy &amp; Security and click “Open Anyway”.</span></p>
+    <div class="cta" style="justify-content:flex-start">
+      <a class="btn" href="https://github.com/samRgarcia/nimbo/releases/latest/download/Nimbo.dmg"><span data-l="es">Descargar Nimbo.dmg</span><span data-l="en">Download Nimbo.dmg</span></a>
+      <a class="btn ghost" href="https://github.com/samRgarcia/nimbo" rel="noopener"><span data-l="es">Ver el código</span><span data-l="en">View the source</span></a>
+    </div>
+  </section>
+
+  <section class="wrap" id="faq">
+    <span class="kicker reveal"><span data-l="es">Preguntas</span><span data-l="en">Questions</span></span>
+    <h2 class="reveal"><span data-l="es">Lo que suelen preguntar.</span><span data-l="en">What people ask.</span></h2>
+    <div class="faq">
+      <details class="reveal"><summary><span data-l="es">¿Cuánto cuesta?</span><span data-l="en">How much does it cost?</span></summary><p><span data-l="es">Nada. Nimbo es gratis: sin pagos, sin suscripción y sin anuncios.</span><span data-l="en">Nothing. Nimbo is free: no payments, no subscription and no ads.</span></p></details>
+      <details class="reveal"><summary><span data-l="es">¿Estorba para trabajar?</span><span data-l="en">Does it get in the way of work?</span></summary><p><span data-l="es">No. Los efectos dejan pasar todos los clics, se ocultan en apps a pantalla completa y puedes pausarlos o bajar la intensidad desde la barra de menús.</span><span data-l="en">No. The effects let every click through, hide in full-screen apps, and you can pause them or lower the intensity from the menu bar.</span></p></details>
+      <details class="reveal"><summary><span data-l="es">¿Qué datos envía?</span><span data-l="en">What data does it send?</span></summary><p><span data-l="es">Solo las coordenadas redondeadas de la ciudad que elijas, a Open-Meteo, para consultar el clima. La posición de tus ventanas nunca sale de tu Mac.</span><span data-l="en">Only the rounded coordinates of the city you choose, to Open-Meteo, to look up the weather. Your window positions never leave your Mac.</span></p></details>
+      <details class="reveal"><summary><span data-l="es">¿Funciona con varios monitores?</span><span data-l="en">Does it work with several displays?</span></summary><p><span data-l="es">Sí, dibuja en todas las pantallas. El taller de invierno vive en la pantalla principal.</span><span data-l="en">Yes, it draws on every display. The winter workshop lives on the main one.</span></p></details>
+    </div>
+  </section>
+
+  <section class="wrap final">
+    <div class="box reveal">
+      <img src="media/icon.png" alt="" width="132" height="132">
+      <h2><span data-l="es">Que nieve en tu Mac.</span><span data-l="en">Let it snow on your Mac.</span></h2>
+      <p class="lead" style="margin-inline:auto"><span data-l="es">Gratis, de código abierto y lista en un minuto.</span><span data-l="en">Free, open source and ready in a minute.</span></p>
+      <div class="cta"><a class="btn" href="https://github.com/samRgarcia/nimbo/releases/latest/download/Nimbo.dmg"><span data-l="es">Descargar gratis</span><span data-l="en">Download free</span></a></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Nimbo</span>
+    <span><span data-l="es">Datos del clima:</span><span data-l="en">Weather data:</span> <a href="https://open-meteo.com/" rel="noopener">Open-Meteo</a> (CC BY 4.0)</span>
+    <a href="https://github.com/samRgarcia/nimbo" rel="noopener">GitHub</a>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var root = document.documentElement;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- Idioma / language ---------- */
+  var TITLES = { es: "Nimbo · Clima vivo en el escritorio de tu Mac", en: "Nimbo · Live weather on your Mac desktop" };
+  var lang = null;
+  try { lang = localStorage.getItem("nimbo-lang"); } catch (e) {}
+  if (lang !== "es" && lang !== "en") lang = (navigator.language || "en").toLowerCase().indexOf("es") === 0 ? "es" : "en";
+  function applyLang() {
+    root.setAttribute("data-lang", lang);
+    root.setAttribute("lang", lang);
+    document.title = TITLES[lang];
+    document.querySelectorAll("[data-lang-toggle]").forEach(function (b) { b.textContent = lang === "es" ? "EN" : "ES"; });
+    document.querySelectorAll("video").forEach(function (v) { if (v.getAttribute("data-l") !== lang) v.pause(); });
+    if (window.__nimboLabel) window.__nimboLabel();
+  }
+  applyLang();
+  document.querySelectorAll("[data-lang-toggle]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      lang = lang === "es" ? "en" : "es";
+      try { localStorage.setItem("nimbo-lang", lang); } catch (e) {}
+      applyLang();
+    });
+  });
+
+  /* ---------- Barra, apariciones y contadores / nav, reveals and counters ---------- */
+  var nav = document.getElementById("nav");
+  function onScroll() { nav.classList.toggle("stuck", window.scrollY > 12); }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+
+  function count(el) {
+    var target = parseInt(el.getAttribute("data-count"), 10);
+    if (reduce || !target) return;
+    var start = performance.now();
+    (function tick(now) {
+      var p = Math.min(1, (now - start) / 1100);
+      el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(tick);
+    })(start);
+  }
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("in");
+        entry.target.querySelectorAll("[data-count]").forEach(count);
+        io.unobserve(entry.target);
+      });
+    }, { threshold: 0.14, rootMargin: "0px 0px -6% 0px" });
+    document.querySelectorAll(".reveal").forEach(function (el) { io.observe(el); });
+  } else {
+    document.querySelectorAll(".reveal").forEach(function (el) { el.classList.add("in"); });
+  }
+
+  // Brillo que sigue al cursor en las tarjetas / glow that follows the cursor on cards
+  document.querySelectorAll(".card").forEach(function (card) {
+    card.addEventListener("pointermove", function (e) {
+      var r = card.getBoundingClientRect();
+      card.style.setProperty("--mx", (e.clientX - r.left) + "px");
+      card.style.setProperty("--my", (e.clientY - r.top) + "px");
+    });
+  });
+
+  /* ---------- Demostración / demo ---------- */
+  var stage = document.getElementById("stage");
+  var shell = document.getElementById("shell");
+  var canvas = document.getElementById("sky");
+  var ctx = canvas.getContext("2d");
+  var nameEl = document.getElementById("sceneName");
+  var chipsEl = document.getElementById("chips");
+  var tools = document.getElementById("tools");
+
+  var SCENES = {
+    snow:      { es: "Nieve", en: "Snow", sky: ["#283a6c", "#7e9ccc"], accent: "#8fc2ff", dim: 0, win: 1, n: 190 },
+    rain:      { es: "Lluvia", en: "Rain", sky: ["#323c4c", "#64728a"], accent: "#9cc4f0", dim: 0.08, win: 0.92, n: 210 },
+    storm:     { es: "Tormenta", en: "Storm", sky: ["#141828", "#3e445a"], accent: "#b9b4ff", dim: 0.16, win: 0.5, n: 300 },
+    petals:    { es: "Pétalos", en: "Petals", sky: ["#8ec4ee", "#fad8e2"], accent: "#ffb7cf", dim: 0, win: 1, n: 60 },
+    leaves:    { es: "Hojas", en: "Leaves", sky: ["#e2a460", "#804c38"], accent: "#ffb066", dim: 0, win: 1, n: 46 },
+    fireflies: { es: "Luciérnagas", en: "Fireflies", sky: ["#0c1826", "#1a3a32"], accent: "#cfff70", dim: 0.1, win: 0.36, n: 34 },
+    meteors:   { es: "Meteoros", en: "Meteors", sky: ["#080a1e", "#202654"], accent: "#c6b8ff", dim: 0.06, win: 0.4, n: 0 },
+    cloud:     { es: "Nublado", en: "Cloudy", sky: ["#768aa4", "#b8c4d0"], accent: "#c9d6e6", dim: 0, win: 1, n: 0 },
+    mist:      { es: "Neblina", en: "Mist", sky: ["#929ca6", "#cacfd2"], accent: "#dfe6ea", dim: 0, win: 1, n: 0 },
+    clear:     { es: "Despejado", en: "Clear", sky: ["#4292e4", "#acd8fa"], accent: "#ffd66e", dim: 0, win: 1, n: 22 }
+  };
+  var ORDER = ["snow", "rain", "storm", "petals", "leaves", "fireflies", "meteors", "cloud", "mist", "clear"];
+  var kind = "snow";
+  var STEP = 4;
+  var W = 0, H = 0, DPR = 1, scale = 1;
+  var ledges = [], parts = [], stars = [], clouds = [], snowmen = [];
+  var clock = 0, fade = 1, flash = 0, bolt = null, eventIn = 2, meteorsLive = [], plow = null;
+  var pointer = null, userPicked = false, visible = true, running = false, last = 0;
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+
+  // Texturas suaves ya dibujadas / pre-drawn soft sprites
+  function sprite(size, stops) {
+    var c = document.createElement("canvas");
+    c.width = c.height = size;
+    var g = c.getContext("2d");
+    var grad = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    stops.forEach(function (s) { grad.addColorStop(s[0], s[1]); });
+    g.fillStyle = grad;
+    g.fillRect(0, 0, size, size);
+    return c;
+  }
+  var GLOW = sprite(64, [[0, "rgba(240,255,176,1)"], [0.18, "rgba(210,255,100,0.9)"], [1, "rgba(200,255,90,0)"]]);
+  var SOFT = sprite(128, [[0, "rgba(255,255,255,0.9)"], [1, "rgba(255,255,255,0)"]]);
+  var SUN = sprite(256, [[0, "rgba(255,246,214,1)"], [0.25, "rgba(255,222,140,0.7)"], [1, "rgba(255,220,140,0)"]]);
+
+  function measure() {
+    var r = stage.getBoundingClientRect();
+    W = r.width; H = r.height; scale = Math.max(0.55, W / 1100);
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    var old = ledges; ledges = [];
+    stage.querySelectorAll("[data-ledge]").forEach(function (el) {
+      var b = el.getBoundingClientRect();
+      var L = { el: el, x0: b.left - r.left, x1: b.right - r.left, y: b.top - r.top, max: (el.dataset.ledge === "dock" ? 15 : 22) * scale };
+      var n = Math.max(1, Math.ceil((L.x1 - L.x0) / STEP));
+      var prev = old.filter(function (o) { return o.el === el; })[0];
+      L.h = prev && prev.h.length === n ? prev.h : new Float32Array(n);
+      ledges.push(L);
+    });
+    var n = Math.max(1, Math.ceil(W / STEP));
+    var floor = old.filter(function (o) { return o.el === null; })[0];
+    ledges.push({ el: null, x0: 0, x1: W, y: H, max: 26 * scale, h: floor && floor.h.length === n ? floor.h : new Float32Array(n) });
+  }
+  function ledgeOf(el) { return ledges.filter(function (l) { return l.el === el; })[0]; }
+  function cap(L, i) { return L.max * Math.min(1, (Math.min(i, L.h.length - 1 - i) + 1) / 5); }
+  function deposit(L, i, amount) {
+    for (var o = -2; o <= 2; o++) {
+      var j = i + o;
+      if (j < 0 || j >= L.h.length) continue;
+      L.h[j] = Math.min(cap(L, j), L.h[j] + amount * (o === 0 ? 1 : Math.abs(o) === 1 ? 0.6 : 0.25));
+    }
+  }
+  function landing(x, y0, y1) {
+    var best = null, bestY = Infinity;
+    for (var k = 0; k < ledges.length; k++) {
+      var L = ledges[k];
+      if (x < L.x0 || x >= L.x1) continue;
+      var i = Math.min(L.h.length - 1, Math.floor((x - L.x0) / STEP));
+      var s = L.y - L.h[i];
+      if (s >= y0 && s <= y1 && s < bestY) { best = { L: L, i: i, y: s }; bestY = s; }
+    }
+    return best;
+  }
+  function spill(L) {
+    var budget = 90;
+    for (var i = 0; i < L.h.length && budget > 0; i += 2) {
+      if (L.h[i] < 1.5) continue;
+      budget--;
+      parts.push({ t: "fall", snow: true, tr: true, x: L.x0 + i * STEP, y: L.y - rand(0, L.h[i]), vx: rand(-20, 20), vy: rand(90, 210), s: rand(3, 6) * scale, a: 0.95, sway: 4, ph: 0, rot: 0, sp: 0 });
+    }
+    L.h.fill(0);
+  }
+
+  function spawn(p, fill) {
+    p.x = rand(-40, W + 40);
+    p.y = fill ? rand(0, H) : -rand(8, fill === false ? 50 : H * 0.9);
+    p.ph = rand(0, 6.283); p.rot = rand(0, 6.283); p.sp = 0; p.tr = false; p.snow = false; p.rest = 0;
+    if (kind === "snow") { p.t = "fall"; p.snow = true; p.s = rand(2.2, 6) * scale; p.vy = rand(30, 78) * (0.6 + p.s / 8); p.vx = 0; p.sway = rand(8, 24); p.a = rand(0.6, 1);
+      if (Math.random() < 0.06) { p.snow = false; p.far = true; p.s = rand(9, 15) * scale; p.vy = rand(100, 150); p.a = rand(0.2, 0.34); } else p.far = false;
+    } else if (kind === "rain" || kind === "storm") { p.t = "rain"; p.s = rand(12, 22) * scale; p.vy = rand(620, 860) * (kind === "storm" ? 1.2 : 1); p.vx = kind === "storm" ? -170 : -45; p.a = rand(0.3, 0.6);
+    } else if (kind === "petals") { p.t = "fall"; p.shape = "petal"; p.s = rand(5, 8) * scale; p.vy = rand(30, 58); p.vx = 0; p.sway = rand(30, 58); p.sp = rand(-2, 2); p.a = 0.92; p.c = ["#ffbed4", "#ffcee0", "#faacc8"][Math.floor(rand(0, 3))];
+    } else if (kind === "leaves") { p.t = "fall"; p.shape = "leaf"; p.s = rand(8, 12) * scale; p.vy = rand(44, 86); p.vx = 0; p.sway = rand(40, 78); p.sp = rand(-3, 3); p.a = 0.96; p.c = ["#d85a1a", "#f29a1e", "#b2341a", "#e6c034"][Math.floor(rand(0, 4))];
+    } else if (kind === "fireflies") { p.t = "fly"; p.x = rand(0, W); p.y = rand(H * 0.18, H * 0.95); p.vx = rand(-18, 18); p.vy = rand(-18, 18); p.s = rand(16, 26) * scale;
+    } else if (kind === "clear") { p.t = "mote"; p.x = rand(0, W); p.y = rand(0, H); p.vx = rand(-6, 6); p.vy = -rand(4, 12); p.s = rand(1.5, 3.4) * scale; p.a = rand(0.3, 0.6); }
+    return p;
+  }
+
+  function setScene(next, byUser) {
+    if (byUser) userPicked = true;
+    var first = parts.length === 0 && clock === 0;
+    kind = next;
+    var S = SCENES[kind];
+    root.style.setProperty("--sky-a", S.sky[0]);
+    root.style.setProperty("--sky-b", S.sky[1]);
+    root.style.setProperty("--accent", S.accent);
+    stage.style.setProperty("--dim", S.dim);
+    stage.style.setProperty("--win-b", S.win);
+    // Lo que ya cae termina de caer / what is already falling finishes its fall
+    parts = parts.filter(function (p) { if (p.t === "fall" || p.t === "rain" || p.t === "bal") { p.tr = true; return true; } return false; });
+    var total = Math.round(S.n * Math.max(0.5, W / 1100) * (reduce ? 0.5 : 1));
+    for (var i = 0; i < total; i++) parts.push(spawn({}, first ? true : undefined));
+    stars = []; clouds = []; meteorsLive = []; bolt = null; flash = 0; eventIn = 1.2; fade = first ? 1 : 0;
+    if (kind === "meteors") for (var s = 0; s < 110; s++) stars.push({ x: rand(0, 1), y: rand(0, 0.7), r: rand(0.6, 1.8), a: rand(0.3, 0.9), ph: rand(0, 6.283) });
+    if (kind === "cloud") for (var c = 0; c < 6; c++) clouds.push({ x: rand(0, 1), y: rand(0.08, 0.34), w: rand(0.3, 0.5), v: rand(0.008, 0.02), a: rand(0.5, 0.8) });
+    if (kind === "mist") for (var m = 0; m < 8; m++) clouds.push({ x: rand(0, 1), y: rand(0.4, 1), w: rand(0.6, 0.9), v: rand(0.006, 0.016) * (m % 2 ? 1 : -1), a: rand(0.22, 0.4) });
+    if (kind !== "snow") { snowmen = []; plow = null; }
+    tools.hidden = kind !== "snow";
+    chipsEl.querySelectorAll(".chip").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.scene === kind ? "true" : "false"); });
+    window.__nimboLabel();
+    if (reduce) still();
+  }
+  window.__nimboLabel = function () { nameEl.textContent = SCENES[kind][lang]; };
+
+  function step(dt) {
+    clock += dt;
+    fade = Math.min(1, fade + dt * 1.1);
+    var wind = Math.sin(clock * 0.25) * 12;
+    for (var i = parts.length - 1; i >= 0; i--) {
+      var p = parts[i], gone = false, nx, ny, hit;
+      if (p.t === "fall") {
+        if (p.rest > 0) { p.rest -= dt; if (p.rest <= 0) { if (p.tr) gone = true; else spawn(p, false); } }
+        else {
+          nx = p.x + (p.vx + wind + Math.sin(clock * 1.3 + p.ph) * p.sway) * dt; ny = p.y + p.vy * dt; p.rot += p.sp * dt;
+          hit = p.far ? null : landing(nx, p.y, ny);
+          if (hit) {
+            if (p.snow) { deposit(hit.L, hit.i, 1.5 * scale); if (p.tr) gone = true; else spawn(p, false); }
+            else { p.x = nx; p.y = hit.y - 1; p.rest = rand(2.5, 6); }
+          } else if (ny > H + 20 || nx < -80 || nx > W + 80) { if (p.tr) gone = true; else spawn(p, false); }
+          else { p.x = nx; p.y = ny; }
+        }
+      } else if (p.t === "rain") {
+        nx = p.x + (p.vx + wind) * dt; ny = p.y + p.vy * dt;
+        hit = landing(nx, p.y, ny);
+        if (hit) {
+          if (parts.length < 900) for (var k = 0; k < 2; k++) parts.push({ t: "bal", x: nx, y: hit.y - 1, vx: rand(-50, 50), vy: -rand(50, 120), s: 1.6 * scale, a: 0.5, life: 0.35, max: 0.35, tr: true });
+          if (p.tr) gone = true; else spawn(p, false);
+        } else if (ny > H + 30 || nx < -120) { if (p.tr) gone = true; else spawn(p, false); }
+        else { p.x = nx; p.y = ny; }
+      } else if (p.t === "fly") {
+        p.vx = Math.max(-26, Math.min(26, p.vx + rand(-60, 60) * dt)); p.vy = Math.max(-26, Math.min(26, p.vy + rand(-60, 60) * dt));
+        p.x += p.vx * dt; p.y += p.vy * dt;
+        if (p.x < -20) p.x = W + 20; else if (p.x > W + 20) p.x = -20;
+        if (p.y < H * 0.12) p.vy = Math.abs(p.vy); else if (p.y > H - 8) p.vy = -Math.abs(p.vy);
+      } else if (p.t === "mote") {
+        p.x += (p.vx + Math.sin(clock * 0.6 + p.ph) * 5) * dt; p.y += p.vy * dt;
+        if (p.y < -10) p.y = H + 10;
+      } else if (p.t === "bal") {
+        p.vy += 520 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt;
+        if (p.life <= 0) gone = true;
+      }
+      if (gone) parts.splice(i, 1);
+    }
+
+    // Derretir cuando no nieva / melt when it is not snowing
+    if (kind !== "snow") {
+      var rate = (kind === "rain" || kind === "storm" ? 9 : 4) * dt;
+      ledges.forEach(function (L) { for (var j = 0; j < L.h.length; j++) if (L.h[j] > 0) L.h[j] = Math.max(0, L.h[j] - rate); });
+    }
+
+    // Rayos y meteoros / lightning and meteors
+    eventIn -= dt;
+    flash = Math.max(0, flash - dt * 2.4);
+    if (bolt) { bolt.life -= dt; if (bolt.life <= 0) bolt = null; }
+    if (eventIn <= 0) {
+      if (kind === "storm") {
+        flash = 0.34; eventIn = rand(2.4, 6);
+        var x = rand(W * 0.2, W * 0.8), y = 0, pts = [[x, 0]];
+        while (y < H * rand(0.4, 0.6)) { x += rand(-26, 26) * scale; y += rand(18, 46) * scale; pts.push([x, y]); }
+        bolt = { pts: pts, life: 0.28 };
+      } else if (kind === "meteors") {
+        eventIn = rand(0.9, 3);
+        meteorsLive.push({ x: rand(W * 0.35, W * 1.05), y: rand(0, H * 0.3), vx: -rand(420, 700) * scale, vy: rand(220, 380) * scale, life: 0.9 });
+      } else eventIn = 3;
+    }
+    for (var m = meteorsLive.length - 1; m >= 0; m--) {
+      var mt = meteorsLive[m]; mt.x += mt.vx * dt; mt.y += mt.vy * dt; mt.life -= dt;
+      if (mt.life <= 0) meteorsLive.splice(m, 1);
+    }
+    clouds.forEach(function (c) { c.x += c.v * dt; if (c.x > 1.4) c.x = -0.4; if (c.x < -0.4) c.x = 1.4; });
+
+    // Quitanieves / snowplow
+    if (plow) {
+      plow.x += 170 * scale * dt;
+      var L = plow.L, blade = plow.x + 40 * scale;
+      if (blade >= L.x0 && blade < L.x1) {
+        var bi = Math.floor((blade - L.x0) / STEP), taken = 0;
+        for (var q = Math.max(0, bi - 3); q <= bi && q < L.h.length; q++) { taken += L.h[q]; L.h[q] = 0; }
+        if (taken > 1.5 && Math.random() < 0.5) parts.push({ t: "bal", x: blade + 4, y: L.y - 5, vx: rand(100, 230), vy: -rand(100, 210), s: rand(2.4, 4.6) * scale, a: 0.95, life: 0.8, max: 0.8, tr: true });
+      }
+      if (plow.x > L.x1 + 30) {
+        var floor = ledgeOf(null);
+        plow = L !== floor ? { L: floor, x: -50 * scale } : null;
+      }
+    }
+
+    // El cursor esparce la nieve / the cursor scatters the snow
+    if (pointer && pointer.speed > 220) {
+      for (var z = 0; z < ledges.length; z++) {
+        var G = ledges[z];
+        if (pointer.x < G.x0 || pointer.x >= G.x1) continue;
+        var gi = Math.min(G.h.length - 1, Math.floor((pointer.x - G.x0) / STEP));
+        if (G.h[gi] < 1.5 || pointer.y > G.y + 6 || pointer.y < G.y - G.h[gi] - 10) continue;
+        for (var w = Math.max(0, gi - 3); w <= Math.min(G.h.length - 1, gi + 3); w++) G.h[w] *= 0.45;
+        for (var f = 0; f < 5; f++) parts.push({ t: "bal", x: pointer.x + rand(-8, 8), y: G.y - rand(2, 9), vx: pointer.vx * 0.15 + rand(-40, 40), vy: -rand(70, 170), s: rand(2, 4.4) * scale, a: 0.95, life: 0.9, max: 0.9, tr: true });
+        break;
+      }
+      pointer.speed = 0;
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    var i, p;
+    ctx.globalAlpha = fade;
+    if (kind === "meteors") {
+      ctx.drawImage(SOFT, W * 0.1, H * 0.06, 130 * scale, 130 * scale);
+      ctx.fillStyle = "#fff";
+      for (i = 0; i < stars.length; i++) { var s = stars[i]; ctx.globalAlpha = fade * s.a * (0.55 + 0.45 * Math.sin(clock * 2 + s.ph)); ctx.beginPath(); ctx.arc(s.x * W, s.y * H, s.r * scale, 0, 6.283); ctx.fill(); }
+      ctx.lineCap = "round"; ctx.lineWidth = 2 * scale;
+      meteorsLive.forEach(function (m) {
+        var g = ctx.createLinearGradient(m.x, m.y, m.x - m.vx * 0.16, m.y - m.vy * 0.16);
+        g.addColorStop(0, "rgba(255,255,255," + Math.min(1, m.life * 2.2) + ")"); g.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.globalAlpha = fade; ctx.strokeStyle = g; ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x - m.vx * 0.16, m.y - m.vy * 0.16); ctx.stroke();
+      });
+    } else if (kind === "clear") {
+      ctx.globalAlpha = fade * (0.8 + 0.12 * Math.sin(clock * 0.8));
+      ctx.drawImage(SUN, W - 300 * scale, -220 * scale, 560 * scale, 560 * scale);
+    } else if (kind === "cloud" || kind === "mist") {
+      clouds.forEach(function (c) {
+        ctx.globalAlpha = fade * c.a;
+        var cw = c.w * W, ch = cw * (kind === "mist" ? 0.34 : 0.42);
+        for (var b = 0; b < 4; b++) ctx.drawImage(SOFT, c.x * W - cw / 2 + (b - 1.5) * cw * 0.2, c.y * H - ch / 2 - (b % 2) * ch * 0.16, cw * 0.56, ch);
+      });
+    }
+    ctx.globalAlpha = 1;
+
+    // Montones de nieve / snow piles
+    ctx.fillStyle = "#fff"; ctx.strokeStyle = "rgba(170,196,228,0.95)"; ctx.lineWidth = 1;
+    ledges.forEach(function (L) {
+      var open = false, px = 0, py = 0;
+      ctx.beginPath();
+      for (var j = 0; j <= L.h.length; j++) {
+        var h = j < L.h.length ? L.h[j] : 0, x = L.x0 + j * STEP;
+        if (h > 0.4) {
+          var cx = x + STEP / 2, cy = L.y - h;
+          if (!open) { ctx.moveTo(x, L.y); ctx.lineTo(cx, cy); open = true; }
+          else ctx.quadraticCurveTo(px, py, (px + cx) / 2, (py + cy) / 2);
+          px = cx; py = cy;
+        } else if (open) { ctx.lineTo(px, py); ctx.lineTo(x, L.y); ctx.closePath(); open = false; }
+      }
+      ctx.fill(); ctx.stroke();
+    });
+
+    // Muñecos y quitanieves / snowmen and snowplow
+    snowmen.forEach(function (m) {
+      var k = m.k * scale, grow = Math.min(1, (clock - m.t0) * 2.2), x = m.L.x0 + m.dx, y = m.L.y;
+      ctx.strokeStyle = "#c4cede"; ctx.fillStyle = "#fff"; ctx.lineWidth = 1;
+      [[13, 12], [9.5, 30], [7, 43]].forEach(function (b, n) {
+        var g = Math.max(0, Math.min(1, grow * 3 - n));
+        if (g <= 0) return;
+        ctx.beginPath(); ctx.arc(x, y - b[1] * k, b[0] * k * g, 0, 6.283); ctx.fill(); ctx.stroke();
+      });
+      if (grow >= 1) {
+        ctx.fillStyle = "#1a1a1a";
+        ctx.beginPath(); ctx.arc(x - 2.6 * k, y - 45 * k, 0.9 * k, 0, 6.283); ctx.arc(x + 2.6 * k, y - 45 * k, 0.9 * k, 0, 6.283); ctx.fill();
+        ctx.fillRect(x - 7.5 * k, y - 50.5 * k, 15 * k, 1.6 * k); ctx.fillRect(x - 4.6 * k, y - 59 * k, 9.2 * k, 9 * k);
+        ctx.fillStyle = "#ff801a"; ctx.beginPath(); ctx.moveTo(x, y - 43.6 * k); ctx.lineTo(x + 7 * k, y - 42.4 * k); ctx.lineTo(x, y - 41.4 * k); ctx.fill();
+      }
+    });
+    if (plow) {
+      var u = scale, x0 = plow.x, y0 = plow.L.y;
+      ctx.fillStyle = "#f28c1a"; ctx.fillRect(x0, y0 - 18 * u, 24 * u, 11 * u); ctx.fillRect(x0 + 22 * u, y0 - 24 * u, 12 * u, 17 * u);
+      ctx.fillStyle = "#b4e0ff"; ctx.fillRect(x0 + 26 * u, y0 - 21 * u, 6 * u, 5 * u);
+      ctx.fillStyle = "#c0c4cc"; ctx.beginPath(); ctx.moveTo(x0 + 37 * u, y0); ctx.lineTo(x0 + 43 * u, y0); ctx.lineTo(x0 + 40 * u, y0 - 15 * u); ctx.lineTo(x0 + 37.5 * u, y0 - 15 * u); ctx.fill();
+      ctx.fillStyle = "#1e1e1e"; ctx.beginPath(); ctx.arc(x0 + 7 * u, y0 - 4.5 * u, 4.5 * u, 0, 6.283); ctx.arc(x0 + 27 * u, y0 - 4.5 * u, 4.5 * u, 0, 6.283); ctx.fill();
+    }
+
+    // Partículas / particles
+    for (i = 0; i < parts.length; i++) {
+      p = parts[i];
+      if (p.t === "rain") {
+        ctx.globalAlpha = p.a; ctx.strokeStyle = "#d6e6ff"; ctx.lineWidth = 1.3 * scale;
+        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx / p.vy * p.s, p.y - p.s); ctx.stroke();
+      } else if (p.t === "fly") {
+        var pulse = Math.max(0, Math.sin(clock * 1.5 + p.ph));
+        ctx.globalAlpha = 0.12 + 0.88 * pulse * pulse; ctx.drawImage(GLOW, p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
+      } else if (p.shape) {
+        ctx.globalAlpha = p.rest > 0 ? p.a * Math.min(1, p.rest) : p.a; ctx.fillStyle = p.c;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.beginPath();
+        if (p.shape === "leaf") { ctx.moveTo(-p.s, 0); ctx.quadraticCurveTo(0, -p.s * 0.9, p.s, 0); ctx.quadraticCurveTo(0, p.s * 0.9, -p.s, 0); }
+        else ctx.ellipse(0, 0, p.s, p.s * 0.62, 0, 0, 6.283);
+        ctx.fill(); ctx.restore();
+      } else {
+        ctx.globalAlpha = p.t === "bal" ? p.a * Math.max(0, p.life / p.max) : p.a;
+        if (p.far) ctx.drawImage(SOFT, p.x - p.s, p.y - p.s, p.s * 2, p.s * 2);
+        else { ctx.fillStyle = kind === "clear" && p.t === "mote" ? "#ffeebe" : "#f6faff"; ctx.beginPath(); ctx.arc(p.x, p.y, p.s / 2, 0, 6.283); ctx.fill(); }
+      }
+    }
+    ctx.globalAlpha = 1;
+    if (bolt) {
+      ctx.strokeStyle = "#f2f6ff"; ctx.lineWidth = 2.4 * scale; ctx.lineJoin = "round"; ctx.shadowColor = "#b8d0ff"; ctx.shadowBlur = 16;
+      ctx.globalAlpha = Math.min(1, bolt.life * 6); ctx.beginPath();
+      bolt.pts.forEach(function (pt, n) { if (n) ctx.lineTo(pt[0], pt[1]); else ctx.moveTo(pt[0], pt[1]); });
+      ctx.stroke(); ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+    }
+    if (flash > 0) { ctx.globalAlpha = flash; ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+  }
+
+  function frame(now) {
+    if (!running) return;
+    var dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
+    last = now;
+    step(dt); draw();
+    requestAnimationFrame(frame);
+  }
+  function play() {
+    if (reduce) return;
+    var should = visible && !document.hidden;
+    if (should && !running) { running = true; last = performance.now(); requestAnimationFrame(frame); }
+    else if (!should) running = false;
+  }
+  // Con movimiento reducido se dibuja un solo cuadro / with reduced motion a single frame is drawn
+  function still() { for (var i = 0; i < 420; i++) step(1 / 30); draw(); }
+
+  // Arrastrar ventanas / dragging windows
+  stage.querySelectorAll(".win").forEach(function (win) {
+    var grab = null;
+    win.addEventListener("pointerdown", function (e) {
+      var r = stage.getBoundingClientRect(), b = win.getBoundingClientRect();
+      grab = { dx: e.clientX - b.left, dy: e.clientY - b.top, r: r, w: b.width, h: b.height };
+      win.setPointerCapture(e.pointerId); win.classList.add("dragging"); stage.classList.add("touched");
+      userPicked = true;
+    });
+    win.addEventListener("pointermove", function (e) {
+      if (!grab) return;
+      var x = Math.max(-grab.w * 0.4, Math.min(grab.r.width - grab.w * 0.6, e.clientX - grab.r.left - grab.dx));
+      var y = Math.max(grab.r.height * 0.06, Math.min(grab.r.height - grab.h * 0.5, e.clientY - grab.r.top - grab.dy));
+      var L = ledgeOf(win);
+      if (L) spill(L);
+      win.style.left = (x / grab.r.width * 100) + "%";
+      win.style.top = (y / grab.r.height * 100) + "%";
+      if (L) { L.x0 = x; L.x1 = x + grab.w; L.y = y; }
+      if (reduce) draw();
+    });
+    function drop() { grab = null; win.classList.remove("dragging"); }
+    win.addEventListener("pointerup", drop);
+    win.addEventListener("pointercancel", drop);
+  });
+  stage.addEventListener("pointermove", function (e) {
+    var r = stage.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, now = performance.now();
+    if (pointer) { var dt = Math.max(1, now - pointer.t) / 1000; pointer.vx = (x - pointer.x) / dt; pointer.speed = Math.hypot(x - pointer.x, y - pointer.y) / dt; }
+    else pointer = { vx: 0, speed: 0 };
+    pointer.x = x; pointer.y = y; pointer.t = now;
+    if (!reduce && window.matchMedia("(hover: hover)").matches) {
+      shell.style.setProperty("--ry", ((x / r.width - 0.5) * 3).toFixed(2) + "deg");
+      shell.style.setProperty("--rx", ((0.5 - y / r.height) * 2.4).toFixed(2) + "deg");
+    }
+  });
+  stage.addEventListener("pointerleave", function () { pointer = null; shell.style.setProperty("--ry", "0deg"); shell.style.setProperty("--rx", "0deg"); });
+
+  // Botones de escena y del taller / scene and workshop buttons
+  ORDER.forEach(function (key) {
+    var b = document.createElement("button");
+    b.className = "chip"; b.type = "button"; b.dataset.scene = key; b.style.setProperty("--c", SCENES[key].accent);
+    b.innerHTML = '<i></i><span data-l="es">' + SCENES[key].es + '</span><span data-l="en">' + SCENES[key].en + "</span>";
+    b.addEventListener("click", function () { setScene(key, true); });
+    chipsEl.appendChild(b);
+  });
+  tools.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-act]");
+    if (!b || kind !== "snow") return;
+    userPicked = true;
+    if (b.dataset.act === "snowman") {
+      var spots = ledges.filter(function (l) { return l.el && l.el.dataset.ledge === "win"; });
+      var L = spots[Math.floor(rand(0, spots.length))];
+      if (L && snowmen.length < 6) snowmen.push({ L: L, dx: rand(24 * scale, Math.max(26 * scale, L.x1 - L.x0 - 24 * scale)), k: rand(0.85, 1.1), t0: clock });
+    } else if (!plow) {
+      var dock = ledges.filter(function (l) { return l.el && l.el.dataset.ledge === "dock"; })[0] || ledgeOf(null);
+      plow = { L: dock, x: dock.x0 - 50 * scale };
+    }
+    if (reduce) still();
+  });
+
+  // Arranque / start-up
+  measure();
+  setScene("snow", false);
+  var resizeT = 0;
+  window.addEventListener("resize", function () { clearTimeout(resizeT); resizeT = setTimeout(function () { measure(); snowmen = []; if (reduce) still(); }, 120); });
+  document.addEventListener("visibilitychange", play);
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(function (entries) { visible = entries[0].isIntersecting; play(); }, { threshold: 0.05 }).observe(stage);
+  }
+  play();
+  // Recorre las escenas sola hasta que alguien elige una / cycles through the scenes until someone picks one
+  if (!reduce) setInterval(function () {
+    if (userPicked || !running) return;
+    setScene(ORDER[(ORDER.indexOf(kind) + 1) % ORDER.length], false);
+  }, 9000);
+})();
+</script>
+</body>
+</html>
